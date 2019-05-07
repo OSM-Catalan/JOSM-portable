@@ -74,6 +74,7 @@ security.provider.6=sun.security.jgss.SunProvider
 security.provider.7=com.sun.security.sasl.Provider
 security.provider.8=org.jcp.xml.dsig.internal.dom.XMLDSigRI
 security.provider.9=sun.security.smartcardio.SunPCSC
+security.provider.10=sun.security.mscapi.SunMSCAPI
 
 #
 # Sun Provider SecureRandom seed source.
@@ -126,7 +127,7 @@ securerandom.source=file:/dev/random
 # This is a comma-separated list of algorithm and/or algorithm:provider
 # entries.
 #
-securerandom.strongAlgorithms=NativePRNGBlocking:SUN
+securerandom.strongAlgorithms=Windows-PRNG:SunMSCAPI,SHA1PRNG:SUN
 
 #
 # Class to instantiate as the javax.security.auth.login.Configuration
@@ -224,6 +225,7 @@ package.access=sun.,\
                jdk.nashorn.tools.,\
                jdk.xml.internal.,\
                com.sun.activation.registries.,\
+               com.sun.java.accessibility.,\
                com.sun.browser.,\
                com.sun.glass.,\
                com.sun.javafx.,\
@@ -285,6 +287,7 @@ package.definition=sun.,\
                    jdk.nashorn.tools.,\
                    jdk.xml.internal.,\
                    com.sun.activation.registries.,\
+                   com.sun.java.accessibility.,\
                    com.sun.browser.,\
                    com.sun.glass.,\
                    com.sun.javafx.,\
@@ -642,7 +645,7 @@ jdk.jar.disabledAlgorithms=MD2, MD5, RSA keySize < 1024, DSA keySize < 1024
 # Example:
 #   jdk.tls.disabledAlgorithms=MD5, SSLv3, DSA, RSA keySize < 2048
 jdk.tls.disabledAlgorithms=SSLv3, RC4, DES, MD5withRSA, DH keySize < 1024, \
-    EC keySize < 224, 3DES_EDE_CBC
+    EC keySize < 224, 3DES_EDE_CBC, anon, NULL
 
 # Legacy algorithms for Secure Socket Layer/Transport Layer Security (SSL/TLS)
 # processing in JSSE implementation.
@@ -911,8 +914,6 @@ jdk.xml.dsig.secureValidationPolicy=\
 # If the pattern is equal to the class name, it matches.
 # Otherwise, the status is UNDECIDED.
 #
-# Primitive types are not configurable with this filter.
-#
 #jdk.serialFilter=pattern;pattern
 
 #
@@ -924,12 +925,9 @@ jdk.xml.dsig.secureValidationPolicy=\
 # to increase limits.
 # If the limits (maxdepth, maxrefs, or maxbytes) are exceeded, the object is rejected.
 #
-# The maxdepth of any array passed to the RMI Registry is set to
-# 10000.  The maximum depth of the graph is set to 20.
-# These limits can be reduced via the maxarray, maxdepth limits.
-#
-#sun.rmi.registry.registryFilter=pattern;pattern
-
+# Each non-array type is allowed or rejected if it matches one of the patterns,
+# evaluated from left to right, and is otherwise allowed. Arrays of any
+# component type, including subarrays and arrays of primitives, are allowed.
 #
 # Array construction of any component type, including subarrays and arrays of
 # primitives, are allowed unless the length is greater than the maxarray limit.
@@ -1003,3 +1001,33 @@ jdk.xml.dsig.secureValidationPolicy=\
 # and javax.crypto.spec.SecretKeySpec and rejects all the others.
 jceks.key.serialFilter = java.lang.Enum;java.security.KeyRep;\
   java.security.KeyRep$Type;javax.crypto.spec.SecretKeySpec;!*
+
+#
+# Policies for distrusting Certificate Authorities (CAs).
+#
+# This is a comma separated value of one or more case-sensitive strings, each
+# of which represents a policy for determining if a CA should be distrusted.
+# The supported values are:
+#
+#   SYMANTEC_TLS : Distrust TLS Server certificates anchored by a Symantec
+#   root CA and issued after April 16, 2019 unless issued by one of the
+#   following subordinate CAs which have a later distrust date:
+#     1. Apple IST CA 2 - G1, SHA-256 fingerprint:
+#        AC2B922ECFD5E01711772FEA8ED372DE9D1E2245FCE3F57A9CDBEC77296A424B
+#        Distrust after December 31, 2019.
+#     2. Apple IST CA 8 - G1, SHA-256 fingerprint:
+#        A4FE7C7F15155F3F0AEF7AAA83CF6E06DEB97CA3F909DF920AC1490882D488ED
+#        Distrust after December 31, 2019.
+#
+# Leading and trailing whitespace surrounding each value are ignored.
+# Unknown values are ignored. If the property is commented out or set to the
+# empty String, no policies are enforced.
+#
+# Note: This property is currently used by the JDK Reference implementation.
+# It is not guaranteed to be supported by other SE implementations. Also, this
+# property does not override other security properties which can restrict
+# certificates such as jdk.tls.disabledAlgorithms or
+# jdk.certpath.disabledAlgorithms; those restrictions are still enforced even
+# if this property is not enabled.
+#
+jdk.security.caDistrustPolicies=SYMANTEC_TLS
